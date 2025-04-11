@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split Videos - VideoSplitter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Add JSZip library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .drag-area {
+            border: 2px dashed #4F46E5;
+            transition: all 0.3s ease;
+        }
+        .drag-area.dragover {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: #4338CA;
+            transform: scale(1.02);
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin 2s linear infinite;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        .video-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-video text-indigo-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-semibold text-gray-800">VideoSplitter</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-bold text-gray-900 sm:text-4xl">Split Your Videos</h1>
+            <p class="mt-4 text-lg text-gray-500">Upload your video and set the time interval for splitting</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="max-w-3xl mx-auto">
+            <div id="upload-container" class="drag-area bg-white rounded-lg p-8 text-center cursor-pointer">
+                <input type="file" id="file-input" class="hidden" accept="video/*">
+                <div class="space-y-4">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-indigo-600"></i>
+                    <h3 class="text-lg font-medium text-gray-900">Drag & Drop your video here</h3>
+                    <p class="text-gray-500">Supported formats: MP4, AVI, MOV, WebM</p>
+                    <p class="text-gray-500">or</p>
+                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                        Browse Files
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video Preview -->
+            <div id="video-preview-container" class="mt-8 hidden">
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <video id="video-preview" class="video-preview" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="mt-4">
+                        <p id="video-info" class="text-sm text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Interval Input -->
+            <div class="mt-8 bg-white rounded-lg p-6 shadow-sm">
+                <label for="time-interval" class="block text-sm font-medium text-gray-700">
+                    Time Interval (minutes)
+                </label>
+                <div class="mt-2">
+                    <input type="number" id="time-interval" name="time-interval" min="1" value="5"
+                        class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                </div>
+            </div>
+
+            <!-- Process Button -->
+            <div class="mt-6 text-center">
+                <button id="process-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                    <i class="fas fa-cut mr-2"></i>
+                    Split Video
+                </button>
+            </div>
+
+            <!-- Progress Section (Hidden by default) -->
+            <div id="progress-section" class="mt-8 hidden">
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <div class="flex items-center justify-center">
+                        <i class="fas fa-spinner animate-spin-slow text-indigo-600 text-3xl"></i>
+                        <span class="ml-3 text-gray-700">Processing your video...</span>
+                    </div>
+                    <div class="mt-4 h-2 bg-gray-200 rounded-full">
+                        <div id="progress-bar" class="h-2 bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="mt-2 text-sm text-gray-600 text-center">0%</p>
+                </div>
+            </div>
+
+            <!-- Results Section (Hidden by default) -->
+            <div id="results-section" class="mt-8 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Video Segments</h3>
+                    <button id="download-all-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                        <i class="fas fa-download mr-2"></i>
+                        Download All (ZIP)
+                    </button>
+                </div>
+                <div id="segments-container" class="grid grid-cols-1 gap-4">
+                    <!-- Segments will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Error Message (Hidden by default) -->
+            <div id="error-message" class="mt-4 hidden">
+                <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700" id="error-text"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
