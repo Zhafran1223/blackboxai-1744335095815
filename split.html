@@ -7,27 +7,64 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Add JSZip library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
         }
+        
+        /* Enhanced Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        
         .drag-area {
             border: 2px dashed #4F46E5;
             transition: all 0.3s ease;
         }
+        
         .drag-area.dragover {
             background-color: rgba(79, 70, 229, 0.1);
             border-color: #4338CA;
-            transform: scale(1.02);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.2);
         }
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
         .animate-spin-slow {
             animation: spin 2s linear infinite;
         }
+        
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -38,26 +75,90 @@
                 transform: translateY(0);
             }
         }
+        
         .slide-in {
             animation: slideIn 0.5s ease-out forwards;
         }
+        
         .video-preview {
             max-width: 100%;
             max-height: 300px;
             margin: 0 auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .video-preview:hover {
+            transform: scale(1.02);
+        }
+        
+        /* Theme Toggle */
+        .theme-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        /* Dark Mode Styles */
+        .dark {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        .dark .bg-white {
+            background-color: #2d2d2d;
+            color: #ffffff;
+        }
+        
+        .dark .text-gray-900 {
+            color: #ffffff;
+        }
+        
+        .dark .text-gray-700 {
+            color: #e0e0e0;
+        }
+        
+        .dark .text-gray-500 {
+            color: #a0a0a0;
+        }
+        
+        /* Confetti Animation */
+        @keyframes confetti {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 999;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 transition-colors duration-300">
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-switch p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all duration-300">
+        <i class="fas fa-moon"></i>
+    </button>
+
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
+    <nav class="bg-white shadow-lg transition-colors duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="index.html" class="flex items-center">
-                        <i class="fas fa-video text-indigo-600 text-2xl mr-2"></i>
-                        <span class="text-xl font-semibold text-gray-800">VideoSplitter</span>
+                    <a href="index.html" class="flex items-center group">
+                        <i class="fas fa-video text-indigo-600 text-2xl mr-2 group-hover:animate-bounce"></i>
+                        <span class="text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors duration-300">VideoSplitter</span>
                     </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="help-btn" class="text-gray-600 hover:text-indigo-600 transition-colors duration-300">
+                        <i class="fas fa-question-circle text-xl"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -66,27 +167,27 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <h1 class="text-3xl font-bold text-gray-900 sm:text-4xl">Split Your Videos</h1>
+            <h1 class="text-3xl font-bold text-gray-900 sm:text-4xl animate-float">Split Your Videos</h1>
             <p class="mt-4 text-lg text-gray-500">Upload your video and set the time interval for splitting</p>
         </div>
 
         <!-- Upload Section -->
         <div class="max-w-3xl mx-auto">
-            <div id="upload-container" class="drag-area bg-white rounded-lg p-8 text-center cursor-pointer">
+            <div id="upload-container" class="drag-area bg-white rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:shadow-xl">
                 <input type="file" id="file-input" class="hidden" accept="video/*">
                 <div class="space-y-4">
-                    <i class="fas fa-cloud-upload-alt text-4xl text-indigo-600"></i>
+                    <i class="fas fa-cloud-upload-alt text-4xl text-indigo-600 animate-bounce"></i>
                     <h3 class="text-lg font-medium text-gray-900">Drag & Drop your video here</h3>
                     <p class="text-gray-500">Supported formats: MP4, AVI, MOV, WebM</p>
                     <p class="text-gray-500">or</p>
-                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105">
                         Browse Files
                     </button>
                 </div>
             </div>
 
             <!-- Video Preview -->
-            <div id="video-preview-container" class="mt-8 hidden">
+            <div id="video-preview-container" class="mt-8 hidden animate-pulse-slow">
                 <div class="bg-white rounded-lg p-6 shadow-sm">
                     <video id="video-preview" class="video-preview" controls>
                         Your browser does not support the video tag.
@@ -104,37 +205,52 @@
                 </label>
                 <div class="mt-2">
                     <input type="number" id="time-interval" name="time-interval" min="1" value="5"
-                        class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                        class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border transition-all duration-300">
+                </div>
+                <!-- Quality Selection -->
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Video Quality</label>
+                    <select id="quality-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="1080p">1080p (Full HD)</option>
+                        <option value="720p">720p (HD)</option>
+                        <option value="480p">480p (SD)</option>
+                        <option value="360p">360p</option>
+                        <option value="240p">240p</option>
+                        <option value="144p">144p</option>
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500">Higher quality requires more processing time</p>
                 </div>
             </div>
 
             <!-- Process Button -->
             <div class="mt-6 text-center">
-                <button id="process-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                <button id="process-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105">
                     <i class="fas fa-cut mr-2"></i>
                     Split Video
                 </button>
             </div>
 
-            <!-- Progress Section (Hidden by default) -->
+            <!-- Progress Section -->
             <div id="progress-section" class="mt-8 hidden">
                 <div class="bg-white rounded-lg p-6 shadow-sm">
                     <div class="flex items-center justify-center">
                         <i class="fas fa-spinner animate-spin-slow text-indigo-600 text-3xl"></i>
                         <span class="ml-3 text-gray-700">Processing your video...</span>
                     </div>
-                    <div class="mt-4 h-2 bg-gray-200 rounded-full">
-                        <div id="progress-bar" class="h-2 bg-indigo-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <div class="mt-4">
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-2 bg-indigo-600 rounded-full transition-all duration-300 loading-shimmer" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="mt-2 text-sm text-gray-600 text-center">0%</p>
                     </div>
-                    <p id="progress-text" class="mt-2 text-sm text-gray-600 text-center">0%</p>
                 </div>
             </div>
 
-            <!-- Results Section (Hidden by default) -->
+            <!-- Results Section -->
             <div id="results-section" class="mt-8 hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-medium text-gray-900">Video Segments</h3>
-                    <button id="download-all-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                    <button id="download-all-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:scale-105">
                         <i class="fas fa-download mr-2"></i>
                         Download All (ZIP)
                     </button>
@@ -144,8 +260,8 @@
                 </div>
             </div>
 
-            <!-- Error Message (Hidden by default) -->
-            <div id="error-message" class="mt-4 hidden">
+            <!-- Error Message -->
+            <div id="error-message" class="mt-4 hidden transform transition-all duration-300">
                 <div class="bg-red-50 border-l-4 border-red-400 p-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -157,6 +273,23 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-lg mx-4 transform transition-all duration-300">
+            <h2 class="text-2xl font-bold mb-4">How to Use VideoSplitter</h2>
+            <ol class="list-decimal list-inside space-y-2 mb-6">
+                <li>Upload your video by dragging and dropping or clicking "Browse Files"</li>
+                <li>Set the time interval (in minutes) for splitting your video</li>
+                <li>Choose the desired output quality</li>
+                <li>Click "Split Video" to process</li>
+                <li>Download individual segments or all segments as ZIP</li>
+            </ol>
+            <button id="close-help" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-300">
+                Got it!
+            </button>
         </div>
     </div>
 
